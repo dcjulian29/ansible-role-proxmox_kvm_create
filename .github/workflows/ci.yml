@@ -10,5 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Install ansible-lint
+        run: |
+          pip3 install --upgrade setuptools wheel
+          pip3 install ansible ansible-lint[yamllint]
+
       - name: Run ansible-lint
-        uses: ansible-community/ansible-lint-action@main
+        run: ~/.local/bin/ansible-lint
