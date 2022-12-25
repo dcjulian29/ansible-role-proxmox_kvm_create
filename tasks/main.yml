@@ -1,0 +1,128 @@
+---
+- name: Download cloud image file if not cached
+  ansible.builtin.get_url:
+    url: "{{ virtual_machine_disk_url }}"
+    dest: "./{{ virtual_machine_disk_file }}"
+    mode: "0664"
+  register: disk_image
+
+- name: Verify that python3-pip and libguestfs-tools are installed on the Proxmox node
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  delegate_to: "{{ proxmox_api_host }}"
+  loop:
+    - python3-pip
+    - libguestfs-tools
+
+- name: Verify if proxmoxer pip module is installed on the Proxmox node
+  ansible.builtin.pip:
+    name: proxmoxer
+    state: present
+  delegate_to: "{{ proxmox_api_host }}"
+
+- name: Upload cloud image file for virtual machine if needed
+  ansible.builtin.copy:
+    src: "./{{ virtual_machine_disk_file }}"
+    dest: "/tmp/{{ virtual_machine_name }}.img"
+    owner: root
+    group: root
+    mode: '0644'
+  delegate_to: "{{ proxmox_api_host }}"
+
+- name: Add QEMU Guest Agent to image file
+  ansible.builtin.command:
+    cmd: >
+      virt-customize -a /tmp/{{ virtual_machine_name }}.img
+      --install qemu-guest-agent --firstboot-command='systemctl start qemu-guest-agent'
+  delegate_to: "{{ proxmox_api_host }}"
+  changed_when: false
+
+- name: "{{ ('Create virtual machine named \"' + virtual_machine_name + '\"') }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    agent: "enabled=1"
+    bios: "{{ proxmox_bios }}"
+    boot: order=scsi0
+    cores: "{{ virtual_machine_cores }}"
+    cpu: "cputype=kvm64"
+    description: |-
+      # This VM is managed by Ansible
+
+      Don't make changes here - they may/will be overwritten.
+
+      Created: {{ lookup('pipe', 'date --utc --iso-8601=seconds') }}Z
+    efidisk0: "{{ omit if proxmox_bios != 'ovmf' else efidisk }}"
+    kvm: true
+    localtime: false
+    memory: "{{ virtual_machine_memory }}"
+    name: "{{ virtual_machine_name }}"
+    net:
+      net0: "virtio,bridge=vmbr{{ vars[proxmox_network_lan].vmbr }},tag={{ vars[proxmox_network_lan].tag }}"
+      net1: "{{ 'virtio,bridge=vmbr' + vars[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else omit }}"
+    node: "{{ proxmox_api_host }}"
+    onboot: "{{ virtual_machine_start }}"
+    ostype: "{{ virtual_machine_os }}"
+    scsi:
+      scsi0: "{{ proxmox_volume_group }}:0,import-from=/tmp/{{ virtual_machine_name }}.img"
+    scsihw: "virtio-scsi-pci"
+    serial:
+      serial0: socket
+    state: present
+    vga: serial0
+    vmid: "{{ omit if virtual_machine_id == 'auto' else virtual_machine_id }}"
+  register: vm
+  failed_when:
+    - virtual_machine_name | length == 0
+    - vm.msg != ("VM " + virtual_machine_name + " with vmid " + vm.vmid | string + " deployed")
+
+- name: Increase disk size if it is necessary
+  community.general.proxmox_disk:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    disk: "{{ virtual_machine_disk }}"
+    size: "+{{ disk_expand_size }}G"
+    state: resized
+    vmid: "{{ vm.vmid }}"
+
+- name: "{{ 'Update cloud-init configuration for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    cipassword: "{{ virtual_machine_password }}"
+    ciuser: "{{ virtual_machine_user }}"
+    ipconfig:
+      ipconfig0: "ip={{ 'dhcp' if virtual_machine_id == 'auto' else config_ip4 + ('' if not vars[proxmox_network_lan].ip6 else config_ip6) }}"
+      ipconfig1: "{{ config_san if virtual_machine_san | length > 0 else omit }}"
+    nameservers: "{{ virtual_machine_nameserver }}"
+    node: "{{ proxmox_api_host }}"
+    searchdomains: "{{ virtual_machine_searchdomain }}"
+    sshkeys: "{{ omit if ssh_keys | length == 0 else ssh_keys }}"
+    state: present
+    update: true
+    vmid: "{{ vm.vmid }}"
+  register: vm_update
+  failed_when:
+    - vm_update.msg != ("VM None with vmid " + vm.vmid | string + " updated")
+
+- name: "{{ 'Generate cloud-init image for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
+  ansible.builtin.command:
+    cmd: "qm set {{ vm.vmid }} --ide2 {{ proxmox_volume_group }}:cloudinit"
+  delegate_to: "{{ proxmox_api_host }}"
+  changed_when: false
+
+- name: "{{ 'Start and initialize virtual machine with ID \"' + vm.vmid | string + '\"' }}"
+  ansible.builtin.command:
+    cmd: "{{ item }}"
+  changed_when: false
+  with_items:
+    - "qm start {{ vm.vmid }}"
+    - "sleep 30"
+    - "qm stop {{ vm.vmid }}"
+    - "sleep 5"
+    - "qm start {{ vm.vmid }}"
+  delegate_to: "{{ proxmox_api_host }}"
