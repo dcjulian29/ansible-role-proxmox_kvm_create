@@ -16,7 +16,7 @@ To use, use `requirements.yml` with the following git source:
 ```yaml
 ---
 roles:
-- name: dcjulian29.proxmox_create_kvm
+- name: dcjulian29.proxmox_kvm_create
   src: https://github.com/dcjulian29/ansible-role-proxmox_kvm_create.git
   version: main
   ```
