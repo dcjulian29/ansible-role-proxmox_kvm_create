@@ -75,7 +75,6 @@
     vmid: "{{ omit if virtual_machine_id == 'auto' else virtual_machine_id }}"
   register: vm
   failed_when:
-    - virtual_machine_name | length == 0
     - vm.msg != ("VM " + virtual_machine_name + " with vmid " + vm.vmid | string + " deployed")
 
 - name: Increase disk size if it is necessary
