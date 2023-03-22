@@ -138,4 +138,9 @@
   register: vm_init
   failed_when:
     - vm_init.msg != ("VM " + vm.vmid | string + " started")
+
+- name: Removed staged cloud image file
+  ansible.builtin.file:
+    path: "/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}"
+    state: absent
   delegate_to: "{{ proxmox_api_host }}"
