@@ -19,8 +19,8 @@ disk_expand_size: 17.8
 proxmox_bios: ovmf # seabios
 proxmox_volume_group: mpio
 virtual_machine_disk: scsi0
-virtual_machine_disk_file: jammy-server-cloudimg-amd64.img
-virtual_machine_disk_url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+virtual_machine_disk_file: debian-11-genericcloud-amd64.qcow2
+virtual_machine_disk_url: "https://cloud.debian.org/images/cloud/bullseye/latest/{{ virtual_machine_disk_file }}"
 virtual_machine_expand_disk: true
 virtual_machine_nameserver: "{{ vars[proxmox_network_lan].dnsservers | split(' ') }}"
 virtual_machine_os: l26
