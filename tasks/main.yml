@@ -34,7 +34,7 @@
 - name: Add QEMU Guest Agent to image file
   ansible.builtin.command:
     cmd: >
-      virt-customize -a /tmp/{{ virtual_machine_name }}.img
+      virt-customize -a /tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}
       --install qemu-guest-agent --firstboot-command='systemctl start qemu-guest-agent'
   delegate_to: "{{ proxmox_api_host }}"
   changed_when: false
@@ -67,7 +67,7 @@
     onboot: "{{ virtual_machine_start }}"
     ostype: "{{ virtual_machine_os }}"
     scsi:
-      scsi0: "{{ proxmox_volume_group }}:0,import-from=/tmp/{{ virtual_machine_name }}.img"
+      scsi0: "{{ proxmox_volume_group }}:0,import-from=/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}"
     scsihw: "virtio-scsi-pci"
     serial:
       serial0: socket
