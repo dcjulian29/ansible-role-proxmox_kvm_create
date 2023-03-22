@@ -1,11 +1,4 @@
 ---
-- name: Download cloud image file if not cached
-  ansible.builtin.get_url:
-    url: "{{ virtual_machine_disk_url }}"
-    dest: "./{{ virtual_machine_disk_file }}"
-    mode: "0664"
-  register: disk_image
-
 - name: Verify that python3-pip and libguestfs-tools are installed on the Proxmox node
   ansible.builtin.apt:
     name: "{{ item }}"
@@ -21,13 +14,21 @@
     state: present
   delegate_to: "{{ proxmox_api_host }}"
 
-- name: Upload cloud image file for virtual machine if needed
+- name: Download cloud image file if not cached
+  ansible.builtin.get_url:
+    url: "{{ virtual_machine_disk_url }}"
+    dest: "/tmp/{{ virtual_machine_disk_file }}"
+    mode: "0664"
+  delegate_to: "{{ proxmox_api_host }}"
+
+- name: Stage cloud image file for virtual machine if needed
   ansible.builtin.copy:
-    src: "./{{ virtual_machine_disk_file }}"
-    dest: "/tmp/{{ virtual_machine_name }}.img"
+    src: "/tmp/{{ virtual_machine_disk_file }}"
+    dest: "/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}"
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
+    remote_src: true
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: Add QEMU Guest Agent to image file
