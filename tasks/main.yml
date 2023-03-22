@@ -46,7 +46,6 @@
     api_user: "{{ proxmox_api_user }}"
     agent: "enabled=1"
     bios: "{{ proxmox_bios }}"
-    boot: order=scsi0
     cores: "{{ virtual_machine_cores }}"
     cpu: "cputype=kvm64"
     description: |-
@@ -111,18 +110,32 @@
 
 - name: "{{ 'Generate cloud-init image for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   ansible.builtin.command:
-    cmd: "qm set {{ vm.vmid }} --ide2 {{ proxmox_volume_group }}:cloudinit"
+    cmd: "qm set {{ vm.vmid }} --ide0 {{ proxmox_volume_group }}:cloudinit"
   delegate_to: "{{ proxmox_api_host }}"
   changed_when: false
 
+- name: "{{ 'Update boot order for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    boot: order=scsi0;ide0
+    node: "{{ proxmox_api_host }}"
+    update: true
+    vmid: "{{ vm.vmid }}"
+  register: vm_init
+  failed_when:
+    - vm_init.msg != ("VM None with vmid " + vm.vmid | string + " updated")
+
 - name: "{{ 'Start and initialize virtual machine with ID \"' + vm.vmid | string + '\"' }}"
-  ansible.builtin.command:
-    cmd: "{{ item }}"
-  changed_when: false
-  with_items:
-    - "qm start {{ vm.vmid }}"
-    - "sleep 30"
-    - "qm stop {{ vm.vmid }}"
-    - "sleep 5"
-    - "qm start {{ vm.vmid }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    node: "{{ proxmox_api_host }}"
+    state: started
+    vmid: "{{ vm.vmid }}"
+  register: vm_init
+  failed_when:
+    - vm_init.msg != ("VM " + vm.vmid | string + " started")
   delegate_to: "{{ proxmox_api_host }}"
