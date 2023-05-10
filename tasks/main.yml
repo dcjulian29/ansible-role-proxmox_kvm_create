@@ -76,6 +76,7 @@
   register: vm
   failed_when:
     - vm.msg != ("VM " + virtual_machine_name + " with vmid " + vm.vmid | string + " deployed")
+  delegate_to: "{{ proxmox_api_host }}"
 
 - name: Increase disk size if it is necessary
   community.general.proxmox_disk:
@@ -86,6 +87,7 @@
     size: "+{{ disk_expand_size }}G"
     state: resized
     vmid: "{{ vm.vmid }}"
+  delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Update cloud-init configuration for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.general.proxmox_kvm:
@@ -107,6 +109,7 @@
   register: vm_update
   failed_when:
     - vm_update.msg != ("VM None with vmid " + vm.vmid | string + " updated")
+  delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Generate cloud-init image for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   ansible.builtin.command:
@@ -126,6 +129,7 @@
   register: vm_init
   failed_when:
     - vm_init.msg != ("VM None with vmid " + vm.vmid | string + " updated")
+  delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Start and initialize virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.general.proxmox_kvm:
@@ -138,6 +142,7 @@
   register: vm_init
   failed_when:
     - vm_init.msg != ("VM " + vm.vmid | string + " started")
+  delegate_to: "{{ proxmox_api_host }}"
 
 - name: Removed staged cloud image file
   ansible.builtin.file:
