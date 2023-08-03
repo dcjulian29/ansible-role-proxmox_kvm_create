@@ -1,17 +1,17 @@
 ---
 ## Provided by Playbook
 
-proxmox_api_host: "" # Provided by Playbook
-proxmox_api_user: "" # Provided by Playbook
-proxmox_api_password: "" # Provided by Playbook
-proxmox_network_lan: "" # Provided by Playbook
-proxmox_network_san: "" # Provided by Playbook
-virtual_machine_cores: 2 # Provided by Playbook
-virtual_machine_id: auto # Provided by Playbook
-virtual_machine_password: "ubuntu" # Provided by Playbook
-virtual_machine_user: "ubuntu" # Provided by Playbook
-virtual_machine_name: "testvm" # Provided by Playbook
-virtual_machine_memory: 2048 # Provided by Playbook
+proxmox_api_host: ""
+proxmox_api_user: ""
+proxmox_api_password: ""
+proxmox_network_lan: ""
+proxmox_network_san: ""
+virtual_machine_cores: 2
+virtual_machine_id: auto
+virtual_machine_password: debian
+virtual_machine_user: debian
+virtual_machine_name: testvm
+virtual_machine_memory: 2048
 
 ## Other, may be overridden in Playbook
 
@@ -19,8 +19,8 @@ disk_expand_size: 17.8
 proxmox_bios: ovmf # seabios
 proxmox_volume_group: mpio
 virtual_machine_disk: scsi0
-virtual_machine_disk_file: debian-11-genericcloud-amd64.qcow2
-virtual_machine_disk_url: "https://cloud.debian.org/images/cloud/bullseye/latest/{{ virtual_machine_disk_file }}"
+virtual_machine_disk_file: debian-12-genericcloud-amd64.qcow2
+virtual_machine_disk_url: "https://cloud.debian.org/images/cloud/bookworm/latest/{{ virtual_machine_disk_file }}"
 virtual_machine_expand_disk: true
 virtual_machine_nameserver: "{{ vars[proxmox_network_lan].dnsservers | split(' ') }}"
 virtual_machine_os: l26
