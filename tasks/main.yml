@@ -14,14 +14,14 @@
     state: present
   delegate_to: "{{ proxmox_api_host }}"
 
-- name: Download cloud image file if not cached
+- name: Download cloud image file
   ansible.builtin.get_url:
     url: "{{ virtual_machine_disk_url }}"
     dest: "/tmp/{{ virtual_machine_disk_file }}"
     mode: "0664"
   delegate_to: "{{ proxmox_api_host }}"
 
-- name: Stage cloud image file for virtual machine if needed
+- name: "{{ ('Customize cloud image file for virtual machine \"' + virtual_machine_name + '\"') }}"
   ansible.builtin.copy:
     src: "/tmp/{{ virtual_machine_disk_file }}"
     dest: "/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}"
@@ -39,6 +39,46 @@
   delegate_to: "{{ proxmox_api_host }}"
   changed_when: false
 
+- name: "{{ ('Grab ID of existing virtual machine \"' + virtual_machine_name + '\"') }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    name: "{{ virtual_machine_name }}"
+    node: "{{ proxmox_api_host }}"
+    state: current
+  changed_when: false
+  failed_when: false
+  register: vme
+  delegate_to: "{{ proxmox_api_host }}"
+
+- name: "{{ ('Stop existing virtual machine named \"' + virtual_machine_name + '\"') }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    node: "{{ proxmox_api_host }}"
+    state: stopped
+    vmid: "{{ vme.vmid }}"
+  when:
+    - vme.msg is defined and vme.msg != ("VM with name = " + virtual_machine_name + " does not exist in cluster")
+    - vme.vmid > 0
+    - vme.status == "running"
+  delegate_to: "{{ proxmox_api_host }}"
+
+- name: "{{ ('Remove existing virtual machine named \"' + virtual_machine_name + '\"') }}"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_password: "{{ proxmox_api_password }}"
+    api_user: "{{ proxmox_api_user }}"
+    node: "{{ proxmox_api_host }}"
+    state: absent
+    vmid: "{{ vme.vmid }}"
+  when:
+    - vme.msg is defined and vme.msg != ("VM with name = " + virtual_machine_name + " does not exist in cluster")
+    - vme.vmid > 0
+  delegate_to: "{{ proxmox_api_host }}"
+
 - name: "{{ ('Create virtual machine named \"' + virtual_machine_name + '\"') }}"
   community.general.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
@@ -51,7 +91,7 @@
     description: |-
       # This VM is managed by Ansible
 
-      Don't make changes here - they may/will be overwritten.
+      Do not make changes here - they may/will be overwritten.
 
       Created: {{ lookup('pipe', 'date --utc --iso-8601=seconds') }}Z
     efidisk0: "{{ omit if proxmox_bios != 'ovmf' else efidisk }}"
@@ -78,7 +118,7 @@
     - vm.msg != ("VM " + virtual_machine_name + " with vmid " + vm.vmid | string + " deployed")
   delegate_to: "{{ proxmox_api_host }}"
 
-- name: Increase disk size if it is necessary
+- name: "{{ 'Increase disk size for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.general.proxmox_disk:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
@@ -144,7 +184,7 @@
     - vm_init.msg != ("VM " + vm.vmid | string + " started")
   delegate_to: "{{ proxmox_api_host }}"
 
-- name: Removed staged cloud image file
+- name: Removed customized cloud image file
   ansible.builtin.file:
     path: "/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}"
     state: absent
