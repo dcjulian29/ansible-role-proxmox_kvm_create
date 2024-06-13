@@ -101,7 +101,8 @@
     name: "{{ virtual_machine_name }}"
     net:
       net0: "virtio,bridge=vmbr{{ vars[proxmox_network_lan].vmbr }},tag={{ vars[proxmox_network_lan].tag }}"
-      net1: "{{ 'virtio,bridge=vmbr' + vars[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else omit }}"
+      net1: >-
+        'virtio,bridge=vmbr' + vars[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else omit }}"
     node: "{{ proxmox_api_host }}"
     onboot: "{{ virtual_machine_start }}"
     ostype: "{{ virtual_machine_os }}"
@@ -137,7 +138,9 @@
     cipassword: "{{ virtual_machine_password }}"
     ciuser: "{{ virtual_machine_user }}"
     ipconfig:
-      ipconfig0: "ip={{ 'dhcp' if virtual_machine_id == 'auto' else config_ip4 + ('' if not vars[proxmox_network_lan].ip6 else config_ip6) }}"
+      ipconfig0: >-
+        ip={{ 'dhcp' if virtual_machine_id == 'auto' else config_ip4
+        + ('' if not vars[proxmox_network_lan].ip6 else config_ip6) }}"
       ipconfig1: "{{ config_san if virtual_machine_san | length > 0 else omit }}"
     nameservers: "{{ virtual_machine_nameserver }}"
     node: "{{ proxmox_api_host }}"
