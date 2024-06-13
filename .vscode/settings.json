@@ -9,6 +9,7 @@
     "ostype",
     "ovmf",
     "proxmoxer",
+    "proxmoxkvmcreate",
     "scsihw",
     "virt",
     "virtio",
