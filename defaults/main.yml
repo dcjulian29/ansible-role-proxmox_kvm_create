@@ -30,7 +30,7 @@ virtual_machine_start: true
 ## Computed Values
 
 config_ip4: >-
-  {{ virtual_machine_ip4 + '/' + vars[proxmox_network_lan].ip4_netmask | string + ',gw=' 
+  {{ virtual_machine_ip4 + '/' + vars[proxmox_network_lan].ip4_netmask | string + ',gw='
   + vars[proxmox_network_lan].ip4_gateway }}
 config_ip6: >-
   ,ip6={{ virtual_machine_ip6 }}/{{ vars[proxmox_network_lan].ip6_netmask | string }},
