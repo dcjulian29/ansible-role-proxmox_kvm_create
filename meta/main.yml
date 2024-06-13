@@ -4,7 +4,8 @@ galaxy_info:
   author: Julian Easterling
   description: Ansible Role to create KVM-based VMs.
   galaxy_tags:
-    - proxmoxkvmcreate
+    - create
+    - kvm
     - proxmox
     - dcjulian29
   license: Apache-2.0
