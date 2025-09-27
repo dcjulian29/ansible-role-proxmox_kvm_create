@@ -101,8 +101,7 @@
     name: "{{ virtual_machine_name }}"
     net:
       net0: "virtio,bridge=vmbr{{ vars[proxmox_network_lan].vmbr }},tag={{ vars[proxmox_network_lan].tag }}"
-      net1: >-
-        'virtio,bridge=vmbr' + vars[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else omit }}
+      net1: "{{ vmbr_net1 if virtual_machine_san | length > 0 else omit }}"
     node: "{{ proxmox_api_host }}"
     onboot: "{{ virtual_machine_start }}"
     ostype: "{{ virtual_machine_os }}"

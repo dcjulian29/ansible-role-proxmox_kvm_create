@@ -50,3 +50,5 @@ virtual_machine_ip4: "{{ vars[proxmox_network_lan].ip4_prefix }}.{{ virtual_mach
 virtual_machine_ip6: >-
   {{ '' if not vars[proxmox_network_lan].ip6 else vars[proxmox_network_lan].ip6_prefix + '::' + virtual_machine_hex }}
 virtual_machine_san: "{{ san_prefix + '.' + virtual_machine_int if san_prefix | length > 0 else '' }}"
+vmbr_net1: >-
+  {{ 'virtio,bridge=vmbr' + vars[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else '' }}
