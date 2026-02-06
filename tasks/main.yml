@@ -40,7 +40,7 @@
   changed_when: false
 
 - name: "{{ ('Grab ID of existing virtual machine \"' + virtual_machine_name + '\"') }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -53,7 +53,7 @@
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ ('Stop existing virtual machine named \"' + virtual_machine_name + '\"') }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -67,7 +67,7 @@
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ ('Remove existing virtual machine named \"' + virtual_machine_name + '\"') }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -80,7 +80,7 @@
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ ('Create virtual machine named \"' + virtual_machine_name + '\"') }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -100,7 +100,7 @@
     memory: "{{ virtual_machine_memory }}"
     name: "{{ virtual_machine_name }}"
     net:
-      net0: "virtio,bridge=vmbr{{ vars[proxmox_network_lan].vmbr }},tag={{ vars[proxmox_network_lan].tag }}"
+      net0: "virtio,bridge=vmbr{{ networks[proxmox_network_lan].vmbr }},tag={{ networks[proxmox_network_lan].tag }}"
       net1: "{{ vmbr_net1 if virtual_machine_san | length > 0 else omit }}"
     node: "{{ proxmox_api_host }}"
     onboot: "{{ virtual_machine_start }}"
@@ -119,7 +119,7 @@
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Increase disk size for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
-  community.general.proxmox_disk:
+  community.proxmox.proxmox_disk:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -130,7 +130,7 @@
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Update cloud-init configuration for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -139,7 +139,7 @@
     ipconfig:
       ipconfig0: >-
         ip={{ 'dhcp' if virtual_machine_id == 'auto' else config_ip4
-        + ('' if not vars[proxmox_network_lan].ip6 else config_ip6) }}
+        + ('' if not networks[proxmox_network_lan].ip6 else config_ip6) }}
       ipconfig1: "{{ config_san if virtual_machine_san | length > 0 else omit }}"
     nameservers: "{{ virtual_machine_nameserver }}"
     node: "{{ proxmox_api_host }}"
@@ -160,7 +160,7 @@
   changed_when: false
 
 - name: "{{ 'Update boot order for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
@@ -174,7 +174,7 @@
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Start and initialize virtual machine with ID \"' + vm.vmid | string + '\"' }}"
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox_api_host }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
