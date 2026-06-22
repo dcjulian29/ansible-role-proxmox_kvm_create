@@ -8,10 +8,11 @@
     - python3-pip
     - libguestfs-tools
 
-- name: Verify if proxmoxer pip module is installed on the Proxmox node
+- name: Ensure proxmoxer (>= 2.3) pip module is installed on the Proxmox node
   ansible.builtin.pip:
-    name: proxmoxer
+    name: "proxmoxer>=2.3"
     state: present
+    extra_args: "--break-system-packages"
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: Download cloud image file
@@ -48,7 +49,9 @@
     node: "{{ proxmox_api_host }}"
     state: current
   changed_when: false
-  failed_when: false
+  failed_when:
+    - vme.failed | default(false)
+    - "'does not exist' not in (vme.msg | default(''))"
   register: vme
   delegate_to: "{{ proxmox_api_host }}"
 
@@ -61,9 +64,9 @@
     state: stopped
     vmid: "{{ vme.vmid }}"
   when:
-    - vme.msg is defined and vme.msg != ("VM with name = " + virtual_machine_name + " does not exist in cluster")
-    - vme.vmid > 0
-    - vme.status == "running"
+    - vme.vmid is defined
+    - (vme.vmid | int) > 0
+    - vme.status | default('') == "running"
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ ('Remove existing virtual machine named \"' + virtual_machine_name + '\"') }}"
@@ -75,8 +78,8 @@
     state: absent
     vmid: "{{ vme.vmid }}"
   when:
-    - vme.msg is defined and vme.msg != ("VM with name = " + virtual_machine_name + " does not exist in cluster")
-    - vme.vmid > 0
+    - vme.vmid is defined
+    - (vme.vmid | int) > 0
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ ('Create virtual machine named \"' + virtual_machine_name + '\"') }}"
@@ -114,8 +117,9 @@
     vga: serial0
     vmid: "{{ omit if virtual_machine_id == 'auto' else virtual_machine_id }}"
   register: vm
-  failed_when:
-    - vm.msg != ("VM " + virtual_machine_name + " with vmid " + vm.vmid | string + " deployed")
+  failed_when: >-
+    vm is failed or
+    not (vm.msg | default('') | lower is search('deployed'))
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Increase disk size for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
@@ -149,8 +153,9 @@
     update: true
     vmid: "{{ vm.vmid }}"
   register: vm_update
-  failed_when:
-    - vm_update.msg != ("VM None with vmid " + vm.vmid | string + " updated")
+  failed_when: >-
+    vm_update is failed or
+    not (vm_update.msg | default('') | lower is search('updated'))
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Generate cloud-init image for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
@@ -169,8 +174,9 @@
     update: true
     vmid: "{{ vm.vmid }}"
   register: vm_init
-  failed_when:
-    - vm_init.msg != ("VM None with vmid " + vm.vmid | string + " updated")
+  failed_when: >-
+    vm_init is failed or
+    not (vm_init.msg | default('') | lower is search('updated'))
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Start and initialize virtual machine with ID \"' + vm.vmid | string + '\"' }}"
@@ -182,8 +188,9 @@
     state: started
     vmid: "{{ vm.vmid }}"
   register: vm_init
-  failed_when:
-    - vm_init.msg != ("VM " + vm.vmid | string + " started")
+  failed_when: >-
+    vm_init is failed or
+    not (vm_init.msg | default('') | lower is search('start|running'))
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: Removed customized cloud image file
