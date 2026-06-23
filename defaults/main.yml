@@ -2,6 +2,9 @@
 ## Provided by Playbook
 
 proxmox_api_host: ""
+# Host used for the API connection / TLS verification. Defaults to the node
+# name; override with the FQDN when the API certificate uses one.
+proxmox_api_endpoint: "{{ proxmox_api_host }}"
 proxmox_api_user: ""
 proxmox_api_password: ""
 proxmox_network_lan: ""
@@ -16,6 +19,8 @@ virtual_machine_memory: 2048
 ## Other, may be overridden in Playbook
 
 disk_expand_size: 17.8
+# Seconds to wait for the create task (disk import) before the module gives up.
+virtual_machine_create_timeout: 300
 proxmox_bios: ovmf    # seabios
 proxmox_volume_group: mpio
 virtual_machine_disk: scsi0
@@ -50,6 +55,6 @@ virtual_machine_ip4: "{{ networks[proxmox_network_lan].ip4_prefix }}.{{ virtual_
 virtual_machine_ip6: >-
   {{ '' if not networks[proxmox_network_lan].ip6 else networks[proxmox_network_lan].ip6_prefix
     + '::' + virtual_machine_hex }}
-virtual_machine_san: "{{ san_prefix + '.' + virtual_machine_int if san_prefix | length > 0 else '' }}"
+virtual_machine_san: "{{ san_prefix + '.' + (virtual_machine_int | string) if san_prefix | length > 0 else '' }}"
 vmbr_net1: >-
   {{ 'virtio,bridge=vmbr' + networks[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else '' }}

@@ -8,11 +8,18 @@
     - python3-pip
     - libguestfs-tools
 
+- name: Determine whether pip on the Proxmox node supports --break-system-packages
+  ansible.builtin.command:
+    cmd: python3 -m pip install --help
+  register: proxmox_pip_help
+  changed_when: false
+  delegate_to: "{{ proxmox_api_host }}"
+
 - name: Ensure proxmoxer (>= 2.3) pip module is installed on the Proxmox node
   ansible.builtin.pip:
     name: "proxmoxer>=2.3"
     state: present
-    extra_args: "--break-system-packages"
+    extra_args: "{{ '--break-system-packages' if '--break-system-packages' in proxmox_pip_help.stdout else omit }}"
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: Download cloud image file
@@ -42,7 +49,7 @@
 
 - name: "{{ ('Grab ID of existing virtual machine \"' + virtual_machine_name + '\"') }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     name: "{{ virtual_machine_name }}"
@@ -57,7 +64,7 @@
 
 - name: "{{ ('Stop existing virtual machine named \"' + virtual_machine_name + '\"') }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     node: "{{ proxmox_api_host }}"
@@ -71,7 +78,7 @@
 
 - name: "{{ ('Remove existing virtual machine named \"' + virtual_machine_name + '\"') }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     node: "{{ proxmox_api_host }}"
@@ -84,7 +91,7 @@
 
 - name: "{{ ('Create virtual machine named \"' + virtual_machine_name + '\"') }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     agent: "enabled=1"
@@ -114,6 +121,7 @@
     serial:
       serial0: socket
     state: present
+    timeout: "{{ virtual_machine_create_timeout }}"
     vga: serial0
     vmid: "{{ omit if virtual_machine_id == 'auto' else virtual_machine_id }}"
   register: vm
@@ -124,7 +132,7 @@
 
 - name: "{{ 'Increase disk size for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.proxmox.proxmox_disk:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     disk: "{{ virtual_machine_disk }}"
@@ -135,7 +143,7 @@
 
 - name: "{{ 'Update cloud-init configuration for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     cipassword: "{{ virtual_machine_password }}"
@@ -166,7 +174,7 @@
 
 - name: "{{ 'Update boot order for virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     boot: order=scsi0;ide0
@@ -181,7 +189,7 @@
 
 - name: "{{ 'Start and initialize virtual machine with ID \"' + vm.vmid | string + '\"' }}"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ proxmox_api_host }}"
+    api_host: "{{ proxmox_api_endpoint }}"
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     node: "{{ proxmox_api_host }}"
