@@ -1,4 +1,11 @@
 ---
+- name: Warn when no SSH public key was found for the virtual machine
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: no SSH public key at "{{ virtual_machine_ssh_key_file }}" -
+      "{{ virtual_machine_name }}" will be created without one.
+  when: ssh_keys | length == 0
+
 - name: Verify that python3-pip and libguestfs-tools are installed on the Proxmox node
   ansible.builtin.apt:
     name: "{{ item }}"

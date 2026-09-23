@@ -30,6 +30,10 @@ virtual_machine_expand_disk: true
 virtual_machine_nameserver: "{{ networks[proxmox_network_lan].dnsservers | split(' ') }}"
 virtual_machine_os: l26
 virtual_machine_searchdomain: "{{ networks[proxmox_network_lan].searchdomain | split(' ') }}"
+# Public key handed to cloud-init, resolved on the control node. Override in
+# group_vars or host_vars to keep keys elsewhere; a relative path is taken from
+# the playbook directory. A missing file means the VM is created with no key.
+virtual_machine_ssh_key_file: "~/.ssh/{{ virtual_machine_name }}.key.pub"
 virtual_machine_start: true
 
 ## Computed Values
@@ -48,7 +52,9 @@ efidisk:
   storage: "{{ proxmox_volume_group }}"
 san_netmask: "{{ networks[proxmox_network_san].ip4_netmask | default('') | string }}"
 san_prefix: "{{ networks[proxmox_network_san].ip4_prefix | default('') }}"
-ssh_keys: "{{ lookup('ansible.builtin.file', 'sshpub/' + virtual_machine_name + '.key.pub', errors='ignore') }}"
+ssh_keys: >-
+  {{ lookup('ansible.builtin.file', virtual_machine_ssh_key_file, errors='ignore')
+  | default('', true) | trim }}
 virtual_machine_hex: "{{ '%04x' | format((virtual_machine_int | int * virtual_machine_int | int) | int) }}"
 virtual_machine_int: "{{ 1 if virtual_machine_id == 'auto' else (virtual_machine_id | string)[-3:] | int }}"
 virtual_machine_ip4: "{{ networks[proxmox_network_lan].ip4_prefix }}.{{ virtual_machine_int }}"
