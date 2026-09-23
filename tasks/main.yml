@@ -16,17 +16,19 @@
     - libguestfs-tools
 
 - name: Determine whether pip on the Proxmox node supports --break-system-packages
-  ansible.builtin.command:
-    cmd: python3 -m pip install --help
-  register: proxmox_pip_help
+  ansible.builtin.shell:
+    cmd: set -o pipefail && python3 -m pip install --help | grep -q -- --break-system-packages
+    executable: /bin/bash
+  register: proxmox_pip_break_system
   changed_when: false
+  failed_when: proxmox_pip_break_system.rc not in [0, 1]
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: Ensure proxmoxer (>= 2.3) pip module is installed on the Proxmox node
   ansible.builtin.pip:
     name: "proxmoxer>=2.3"
     state: present
-    extra_args: "{{ '--break-system-packages' if '--break-system-packages' in proxmox_pip_help.stdout else omit }}"
+    extra_args: "{{ '--break-system-packages' if proxmox_pip_break_system.rc == 0 else omit }}"
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: Download cloud image file
@@ -104,7 +106,7 @@
     agent: "enabled=1"
     bios: "{{ proxmox_bios }}"
     cores: "{{ virtual_machine_cores }}"
-    cpu: "cputype=kvm64"
+    cpu: "cputype={{ proxmox_cpu_type }}"
     description: |-
       # This VM is managed by Ansible
 
@@ -123,7 +125,8 @@
     onboot: "{{ virtual_machine_start }}"
     ostype: "{{ virtual_machine_os }}"
     scsi:
-      scsi0: "{{ proxmox_volume_group }}:0,import-from=/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file }}"
+      scsi0: "{{ proxmox_volume_group }}:0,import-from=/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file
+        }},format={{ virtual_machine_disk_format }}"
     scsihw: "virtio-scsi-pci"
     serial:
       serial0: socket
@@ -143,9 +146,10 @@
     api_password: "{{ proxmox_api_password }}"
     api_user: "{{ proxmox_api_user }}"
     disk: "{{ virtual_machine_disk }}"
-    size: "+{{ disk_expand_size }}G"
+    size: "{{ virtual_machine_disk_size }}"
     state: resized
     vmid: "{{ vm.vmid }}"
+  when: virtual_machine_expand_disk
   delegate_to: "{{ proxmox_api_host }}"
 
 - name: "{{ 'Update cloud-init configuration for virtual machine with ID \"' + vm.vmid | string + '\"' }}"

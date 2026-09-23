@@ -18,13 +18,20 @@ virtual_machine_memory: 2048
 
 ## Other, may be overridden in Playbook
 
-disk_expand_size: 17.8
 # Seconds to wait for the create task (disk import) before the module gives up.
 virtual_machine_create_timeout: 300
 proxmox_bios: ovmf    # seabios
+proxmox_cpu_type: x86-64-v3
 proxmox_volume_group: mpio
 virtual_machine_disk: scsi0
 virtual_machine_disk_file: debian-13-genericcloud-amd64.qcow2
+# Target format of the imported OS disk. qcow2 permits snapshots on file-based
+# storage such as NFS; LVM-backed storage only supports raw.
+virtual_machine_disk_format: qcow2
+# Absolute size of the OS disk, with a KMGT suffix. Being absolute rather than
+# an increment, it does not drift as the cloud image grows. Proxmox cannot
+# shrink a disk, so a value below the image size fails the resize task.
+virtual_machine_disk_size: 30G
 virtual_machine_disk_url: "https://cloud.debian.org/images/cloud/trixie/latest/{{ virtual_machine_disk_file }}"
 virtual_machine_expand_disk: true
 virtual_machine_nameserver: "{{ networks[proxmox_network_lan].dnsservers | split(' ') }}"
