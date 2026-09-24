@@ -22,6 +22,10 @@ virtual_machine_memory: 2048
 virtual_machine_create_timeout: 300
 proxmox_bios: ovmf    # seabios
 proxmox_cpu_type: x86-64-v3
+# VLAN arriving untagged (the native/PVID VLAN) on the node's bridge. A network
+# whose tag matches gets a NIC with no tag=, because PVE rejects tag=0 and
+# switches typically drop frames tagged with the native VLAN ID. 0 disables it.
+proxmox_untagged_vlan: 0
 proxmox_volume_group: mpio
 virtual_machine_disk: scsi0
 virtual_machine_disk_file: debian-13-genericcloud-amd64.qcow2
@@ -52,6 +56,9 @@ config_ip6: >-
   ,ip6={{ virtual_machine_ip6 }}/{{ networks[proxmox_network_lan].ip6_netmask | string }},
   gw6={{ networks[proxmox_network_lan].ip6_gateway }}
 config_san: "ip={{ virtual_machine_san }}/{{ san_netmask }}"
+lan_tag: >-
+  {{ 0 if networks[proxmox_network_lan].tag | int == proxmox_untagged_vlan | int
+  else networks[proxmox_network_lan].tag | int }}
 efidisk:
   efitype: 4m
   format: "{{ virtual_machine_disk_format }}"
@@ -69,5 +76,8 @@ virtual_machine_ip6: >-
   {{ '' if not networks[proxmox_network_lan].ip6 else networks[proxmox_network_lan].ip6_prefix
     + '::' + virtual_machine_hex }}
 virtual_machine_san: "{{ san_prefix + '.' + (virtual_machine_int | string) if san_prefix | length > 0 else '' }}"
+vmbr_net0: >-
+  {{ 'virtio,bridge=vmbr' + networks[proxmox_network_lan].vmbr | string
+  + (',tag=' + lan_tag | string if lan_tag | int > 0 else '') }}
 vmbr_net1: >-
   {{ 'virtio,bridge=vmbr' + networks[proxmox_network_san].vmbr | string if virtual_machine_san | length > 0 else '' }}
