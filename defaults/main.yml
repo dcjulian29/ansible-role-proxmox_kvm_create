@@ -54,7 +54,7 @@ config_ip6: >-
 config_san: "ip={{ virtual_machine_san }}/{{ san_netmask }}"
 efidisk:
   efitype: 4m
-  format: raw
+  format: "{{ virtual_machine_disk_format }}"
   pre_enrolled_keys: true
   storage: "{{ proxmox_volume_group }}"
 san_netmask: "{{ networks[proxmox_network_san].ip4_netmask | default('') | string }}"
