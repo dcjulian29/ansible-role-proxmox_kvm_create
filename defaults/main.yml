@@ -36,6 +36,10 @@ virtual_machine_disk_format: qcow2
 # an increment, it does not drift as the cloud image grows. Proxmox cannot
 # shrink a disk, so a value below the image size fails the resize task.
 virtual_machine_disk_size: 30G
+# Tells the guest its OS disk is solid-state. Only true when the volume group
+# is on SSD; claiming it for HDD-backed storage misleads the guest's I/O
+# scheduler. Discard is always on, so guest trims free space on thin storage.
+virtual_machine_disk_ssd: false
 virtual_machine_disk_url: "https://cloud.debian.org/images/cloud/trixie/latest/{{ virtual_machine_disk_file }}"
 virtual_machine_expand_disk: true
 virtual_machine_nameserver: "{{ networks[proxmox_network_lan].dnsservers | split(' ') }}"
@@ -59,6 +63,9 @@ config_san: "ip={{ virtual_machine_san }}/{{ san_netmask }}"
 lan_tag: >-
   {{ 0 if networks[proxmox_network_lan].tag | int == proxmox_untagged_vlan | int
   else networks[proxmox_network_lan].tag | int }}
+# discard=on passes guest trims through to LVM-thin or a qcow2 on NFS, which
+# returns the space; without it, deleted data stays allocated on the storage.
+disk_options: "discard=on{{ ',ssd=1' if virtual_machine_disk_ssd | bool else '' }}"
 efidisk:
   efitype: 4m
   format: "{{ virtual_machine_disk_format }}"

@@ -126,7 +126,7 @@
     ostype: "{{ virtual_machine_os }}"
     scsi:
       scsi0: "{{ proxmox_volume_group }}:0,import-from=/tmp/{{ virtual_machine_name }}_{{ virtual_machine_disk_file
-        }},format={{ virtual_machine_disk_format }}"
+        }},format={{ virtual_machine_disk_format }},{{ disk_options }}"
     scsihw: "virtio-scsi-pci"
     serial:
       serial0: socket
