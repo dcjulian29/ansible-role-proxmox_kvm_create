@@ -23,7 +23,8 @@ virtual_machine_create_timeout: 300
 proxmox_bios: ovmf    # seabios
 proxmox_cpu_type: x86-64-v3
 # VLAN arriving untagged (the native/PVID VLAN) on the node's bridge. A network
-# whose tag matches gets a NIC with no tag=, because PVE rejects tag=0 and
+# whose tag matches gets tag=1, the bridge's VLAN for untagged frames: PVE
+# trunks every VLAN to a NIC with no tag (Windows guests pick those up), and
 # switches typically drop frames tagged with the native VLAN ID. 0 disables it.
 proxmox_untagged_vlan: 0
 proxmox_volume_group: mpio
@@ -61,7 +62,7 @@ config_ip6: >-
   gw6={{ networks[proxmox_network_lan].ip6_gateway }}
 config_san: "ip={{ virtual_machine_san }}/{{ san_netmask }}"
 lan_tag: >-
-  {{ 0 if networks[proxmox_network_lan].tag | int == proxmox_untagged_vlan | int
+  {{ 1 if networks[proxmox_network_lan].tag | int == proxmox_untagged_vlan | int
   else networks[proxmox_network_lan].tag | int }}
 # discard=on passes guest trims through to LVM-thin or a qcow2 on NFS, which
 # returns the space; without it, deleted data stays allocated on the storage.
