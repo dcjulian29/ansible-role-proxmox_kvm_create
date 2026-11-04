@@ -43,6 +43,8 @@ virtual_machine_disk_size: 30G
 virtual_machine_disk_ssd: false
 virtual_machine_disk_url: "https://cloud.debian.org/images/cloud/trixie/latest/{{ virtual_machine_disk_file }}"
 virtual_machine_expand_disk: true
+virtual_machine_ha: false
+virtual_machine_ha_rules: []
 virtual_machine_nameserver: "{{ networks[proxmox_network_lan].dnsservers | split(' ') }}"
 virtual_machine_os: l26
 virtual_machine_searchdomain: "{{ networks[proxmox_network_lan].searchdomain | split(' ') }}"
